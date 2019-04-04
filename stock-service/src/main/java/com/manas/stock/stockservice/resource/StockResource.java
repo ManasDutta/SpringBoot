@@ -1,6 +1,7 @@
 package com.manas.stock.stockservice.resource;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,14 +26,17 @@ public class StockResource {
 	RestTemplate restTemplate;
 
 	@GetMapping("/{username}")
-	public List<Stock> getStock(@PathVariable(name = "username") final String userName) {
+	public List<Quote> getStock(@PathVariable(name = "username") final String userName) {
 
-		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://localhost:8300/rest/db/" + userName,
+		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://de-service/rest/db/" + userName,
 				HttpMethod.GET, null, new ParameterizedTypeReference<List<String>>() {
 				});
 		List<String> quotes = quoteResponse.getBody();
 
-		return quotes.stream().map(this::getStockPrice).collect(Collectors.toList());
+		return quotes.stream().map(quote -> {
+			Stock stock = getStockPrice(quote);
+			return new Quote(quote, stock.getQuote().getPrice());
+		}).collect(Collectors.toList());
 	}
 
 	private Stock getStockPrice(String quote) {
@@ -41,5 +45,45 @@ public class StockResource {
 		} catch (IOException e) {
 			return new Stock(quote);
 		}
+	}
+
+	private class Quote {
+		private String quote;
+
+		private BigDecimal price;
+
+		public Quote(String quote, BigDecimal price) {
+			this.quote = quote;
+			this.price = price;
+		}
+
+		/**
+		 * @return the quote
+		 */
+		public String getQuote() {
+			return quote;
+		}
+
+		/**
+		 * @param quote the quote to set
+		 */
+		public void setQuote(String quote) {
+			this.quote = quote;
+		}
+
+		/**
+		 * @return the price
+		 */
+		public BigDecimal getPrice() {
+			return price;
+		}
+
+		/**
+		 * @param price the price to set
+		 */
+		public void setPrice(BigDecimal price) {
+			this.price = price;
+		}
+
 	}
 }
